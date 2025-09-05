@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quản Lý Thu Chi Lớp Học</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Inter Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+            min-height: 100vh;
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center p-4">
+    <div id="appContainer" class="bg-white rounded-2xl shadow-xl w-full max-w-4xl p-6 md:p-8">
+        <h1 class="text-3xl md:text-4xl font-bold text-center text-gray-800 mb-2">Quản Lý Thu Chi Lớp</h1>
+        <p class="text-center text-gray-500 mb-6">Theo dõi thu chi hàng tuần của lớp học.</p>
+        
+        <!-- Summary boxes -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div class="bg-green-100 p-4 rounded-xl text-center shadow-md">
+                <p class="text-lg text-green-700 font-medium">Tổng Thu</p>
+                <p id="totalIncome" class="text-2xl font-bold text-green-800 mt-1">0 VND</p>
+            </div>
+            <div class="bg-red-100 p-4 rounded-xl text-center shadow-md">
+                <p class="text-lg text-red-700 font-medium">Tổng Chi</p>
+                <p id="totalExpense" class="text-2xl font-bold text-red-800 mt-1">0 VND</p>
+            </div>
+            <div class="bg-blue-100 p-4 rounded-xl text-center shadow-md">
+                <p class="text-lg text-blue-700 font-medium">Tồn Quỹ</p>
+                <p id="balance" class="text-2xl font-bold text-blue-800 mt-1">0 VND</p>
+            </div>
+        </div>
+
+        <!-- Admin UI (hidden by default) -->
+        <div id="adminUI" class="hidden">
+            <div class="bg-gray-100 p-4 rounded-xl text-center mb-6">
+                <p class="text-sm text-gray-600">ID của bạn (dùng để chia sẻ):</p>
+                <p id="userIdDisplay" class="font-mono text-xs md:text-sm break-all text-gray-900 mt-1"></p>
+            </div>
+            <div class="bg-white p-6 rounded-xl shadow-inner mb-6">
+                <h2 class="text-2xl font-semibold text-gray-800 mb-4">Thêm Giao Dịch Mới</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+                    <div>
+                        <label for="transactionWeek" class="block text-gray-700 font-medium mb-1">Tuần:</label>
+                        <input type="text" id="transactionWeek" placeholder="Ví dụ: Tuần 1" class="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div class="md:col-span-1 lg:col-span-2">
+                        <label for="transactionContent" class="block text-gray-700 font-medium mb-1">Nội dung:</label>
+                        <input type="text" id="transactionContent" placeholder="Ví dụ: Tiền quỹ lớp" class="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label for="transactionAmount" class="block text-gray-700 font-medium mb-1">Số tiền (VND):</label>
+                        <input type="number" id="transactionAmount" placeholder="Ví dụ: 50000" class="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                </div>
+                <div class="flex flex-col md:flex-row gap-4">
+                    <button id="addIncomeBtn" class="flex-1 px-4 py-2 rounded-lg text-white font-semibold transition-transform duration-200 transform hover:scale-105 bg-green-500 hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2">Thêm Khoản Thu</button>
+                    <button id="addExpenseBtn" class="flex-1 px-4 py-2 rounded-lg text-white font-semibold transition-transform duration-200 transform hover:scale-105 bg-red-500 hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2">Thêm Khoản Chi</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Public UI (hidden by default) -->
+        <div id="publicUI" class="hidden">
+            <div class="bg-blue-100 p-4 rounded-xl text-center mb-6">
+                <p class="text-base text-blue-700 font-medium mb-4">Bạn đang ở chế độ xem công khai. Để thêm giao dịch, bạn cần đăng nhập với tài khoản quản trị.</p>
+                <div class="space-y-4">
+                    <input type="text" id="loginUsername" placeholder="Tên đăng nhập" class="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <input type="password" id="loginPassword" placeholder="Mật khẩu" class="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <button id="emailSignInBtn" class="w-full bg-blue-500 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-blue-600 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                        Đăng nhập
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Report and History Section -->
+        <div class="bg-white p-6 rounded-xl shadow-inner">
+            <div class="flex flex-col md:flex-row justify-between items-center mb-4">
+                <h2 class="text-2xl font-semibold text-gray-800">Báo Cáo & Lịch Sử</h2>
+                <div class="flex flex-col md:flex-row items-center gap-4 mt-4 md:mt-0">
+                    <span class="text-gray-700 font-medium">Xem lịch sử theo tuần:</span>
+                    <select id="weekFilter" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg font-medium">
+                        <option value="all">Tất cả</option>
+                    </select>
+                    <button id="exportBtn" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg font-medium transition-transform duration-200 transform hover:scale-105 hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2">
+                        Xuất Excel
+                    </button>
+                </div>
+            </div>
+            <div class="overflow-x-auto rounded-lg shadow-md">
+                <table class="min-w-full bg-white border-collapse">
+                    <thead class="bg-gray-200 text-gray-700 uppercase text-sm leading-normal">
+                        <tr>
+                            <th class="py-3 px-6 text-left">Tuần</th>
+                            <th class="py-3 px-6 text-left">Nội dung</th>
+                            <th class="py-3 px-6 text-left">Loại</th>
+                            <th class="py-3 px-6 text-right">Số tiền</th>
+                            <th id="actionHeader" class="py-3 px-6 text-left">Hành động</th>
+                        </tr>
+                    </thead>
+                    <tbody id="transactionsTableBody" class="text-gray-600 text-sm font-medium">
+                        <tr id="loadingRow">
+                            <td colspan="5" class="text-center text-gray-500 py-4">Đang tải dữ liệu...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div id="noDataMessage" class="text-center text-gray-500 italic mt-4 hidden">
+                Chưa có giao dịch nào được ghi lại.
+            </div>
+            <div id="connectionError" class="text-center text-red-500 font-medium mt-4 hidden">
+                Lỗi kết nối Firebase. Vui lòng thử lại.
+            </div>
+        </div>
+    </div>
+    
+    <!-- Custom Modal for Confirmation -->
+    <div id="confirmationModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm">
+            <h3 class="text-xl font-semibold text-gray-800 mb-4">Xác Nhận Xóa</h3>
+            <p class="text-gray-600 mb-6">Bạn có chắc chắn muốn xóa giao dịch này? Hành động này không thể hoàn tác.</p>
+            <div class="flex justify-end gap-3">
+                <button id="cancelDeleteBtn" class="px-4 py-2 text-gray-700 bg-gray-200 rounded-lg font-medium hover:bg-gray-300 transition-colors duration-200">Hủy</button>
+                <button id="confirmDeleteBtn" class="px-4 py-2 text-white bg-red-500 rounded-lg font-semibold hover:bg-red-600 transition-colors duration-200">Xác Nhận</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Alert Modal -->
+    <div id="alertModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm">
+            <h3 id="alertTitle" class="text-xl font-semibold text-gray-800 mb-4">Thông báo</h3>
+            <p id="alertMessage" class="text-gray-600 mb-6"></p>
+            <div class="flex justify-end">
+                <button id="closeAlertBtn" class="px-4 py-2 text-white bg-blue-500 rounded-lg font-semibold hover:bg-blue-600 transition-colors duration-200">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase SDKs -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, onSnapshot, addDoc, query, limit, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Set Firebase logging level to debug
+        setLogLevel('Debug');
+
+        // --- GLOBAL VARIABLES ---
+        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const PUBLIC_COLLECTION_PATH = 'artifacts/' + appId + '/public/data/transactions';
+
+        let userId = null;
+        let isAuthReady = false;
+        let isAdmin = false;
+        let allTransactionsData = [];
+
+        // --- CUSTOM MODAL FUNCTIONS ---
+        function showAlert(message) {
+            const alertModal = document.getElementById('alertModal');
+            const alertMessage = document.getElementById('alertMessage');
+            alertMessage.textContent = message;
+            alertModal.style.display = 'flex';
+        }
+        
+        // --- UI RENDERING FUNCTIONS ---
+        function showCorrectUI() {
+            const adminUI = document.getElementById('adminUI');
+            const publicUI = document.getElementById('publicUI');
+            const userIdDisplay = document.getElementById('userIdDisplay');
+            const exportBtn = document.getElementById('exportBtn');
+            const actionHeader = document.getElementById('actionHeader');
+            
+            if (isAdmin) {
+                if (adminUI) adminUI.classList.remove('hidden');
+                if (publicUI) publicUI.classList.add('hidden');
+                if (userIdDisplay) userIdDisplay.textContent = userId;
+                if (exportBtn) exportBtn.classList.remove('hidden');
+                if (actionHeader) actionHeader.classList.remove('hidden');
+            } else {
+                if (adminUI) adminUI.classList.add('hidden');
+                if (publicUI) publicUI.classList.remove('hidden');
+                if (exportBtn) exportBtn.classList.add('hidden');
+                if (actionHeader) actionHeader.classList.add('hidden');
+            }
+        }
+
+        // --- FIREBASE AUTHENTICATION ---
+        async function authenticateUser() {
+            const loadingRow = document.getElementById('loadingRow');
+            const connectionError = document.getElementById('connectionError');
+        
+            onAuthStateChanged(auth, async (user) => {
+                try {
+                    if (user) {
+                        // Người dùng đã đăng nhập, kiểm tra xem họ có phải là quản trị viên không (người dùng email/password)
+                        // Trong trường hợp này, chúng ta giả định người dùng có email là admin
+                        isAdmin = user.email && user.email.startsWith('admin') ? true : false;
+                        userId = user.uid;
+                        console.log("Authenticated. isAdmin:", isAdmin);
+                        // Bắt đầu lắng nghe dữ liệu
+                        startRealtimeListener();
+                    } else {
+                        // Người dùng chưa đăng nhập, giao diện sẽ hiển thị form đăng nhập
+                        isAdmin = false;
+                        userId = null;
+                        if (loadingRow) loadingRow.classList.add('hidden');
+                    }
+                    isAuthReady = true;
+                    if (connectionError) connectionError.classList.add('hidden');
+                    showCorrectUI();
+                } catch (error) {
+                    console.error("Authentication failed:", error);
+                    isAuthReady = false;
+                    if (loadingRow) loadingRow.classList.add('hidden');
+                    if (connectionError) connectionError.classList.remove('hidden');
+                }
+            });
+
+            // Sử dụng custom token nếu có, Firebase sẽ tự động cập nhật trạng thái
+            if (initialAuthToken) {
+                try {
+                    await signInWithCustomToken(auth, initialAuthToken);
+                } catch (error) {
+                    console.error("Failed to sign in with custom token:", error);
+                }
+            }
+        }
+
+        // --- EMAIL/PASSWORD SIGN-IN FUNCTION ---
+        async function signInWithEmail() {
+            const usernameInput = document.getElementById('loginUsername');
+            const passwordInput = document.getElementById('loginPassword');
+            const username = usernameInput.value.trim();
+            const password = passwordInput.value.trim();
+
+            if (!username || !password) {
+                showAlert("Vui lòng nhập tên đăng nhập và mật khẩu.");
+                return;
+            }
+
+            try {
+                // Tạm thời bỏ qua Firebase Auth và đăng nhập bằng token giả
+                // để người dùng có thể thử nghiệm chức năng quản trị
+                if (username === 'admin' && password === 'admin') {
+                    // Cấp quyền admin tạm thời
+                    showAlert("Đăng nhập thành công với tài khoản quản trị!");
+                    isAdmin = true;
+                    userId = 'temp-admin-' + Math.random().toString(36).substring(2, 15);
+                    showCorrectUI();
+                    startRealtimeListener();
+                    console.log("Đăng nhập thành công với tài khoản quản trị!");
+                } else {
+                    showAlert("Tên đăng nhập hoặc mật khẩu không đúng.");
+                }
+            } catch (error) {
+                console.error("Lỗi đăng nhập:", error);
+                showAlert("Đã xảy ra lỗi trong quá trình đăng nhập. Vui lòng thử lại.");
+            }
+        }
+
+        // --- REAL-TIME DATA LISTENER ---
+        function startRealtimeListener() {
+            if (!isAuthReady) return;
+
+            const publicTransactionsCollectionRef = collection(db, PUBLIC_COLLECTION_PATH);
+            const q = query(publicTransactionsCollectionRef, limit(200));
+
+            onSnapshot(q, (querySnapshot) => {
+                const loadingRow = document.getElementById('loadingRow');
+                const connectionError = document.getElementById('connectionError');
+                if (loadingRow) loadingRow.classList.add('hidden');
+                if (connectionError) connectionError.classList.add('hidden');
+                const transactions = [];
+                let totalIncome = 0;
+                let totalExpense = 0;
+
+                querySnapshot.forEach((doc) => {
+                    const data = doc.data();
+                    transactions.push({ id: doc.id, ...data });
+                    if (data['Loại (Thu/Chi)'] === 'Thu') {
+                        totalIncome += data['Số tiền'];
+                    } else {
+                        totalExpense += data['Số tiền'];
+                    }
+                });
+
+                allTransactionsData = transactions;
+                updateSummary(totalIncome, totalExpense);
+                updateWeekFilterOptions();
+                filterAndRenderTransactions();
+
+            }, (error) => {
+                console.error("Lỗi khi lắng nghe dữ liệu:", error);
+                const loadingRow = document.getElementById('loadingRow');
+                const connectionError = document.getElementById('connectionError');
+                if (loadingRow) loadingRow.classList.add('hidden');
+                if (connectionError) connectionError.classList.remove('hidden');
+            });
+        }
+
+        // --- DATA FUNCTIONS ---
+        async function addTransaction(type) {
+            const transactionWeekInput = document.getElementById('transactionWeek');
+            const transactionContentInput = document.getElementById('transactionContent');
+            const transactionAmountInput = document.getElementById('transactionAmount');
+            
+            if (!isAdmin || !isAuthReady) {
+                console.error("Người dùng không có quyền thêm giao dịch.");
+                showAlert("Bạn đang ở chế độ xem công khai. Để thêm giao dịch, bạn cần đăng nhập với tài khoản quản trị.");
+                return;
+            }
+            
+            const week = transactionWeekInput.value.trim();
+            const content = transactionContentInput.value.trim();
+            const amount = parseFloat(transactionAmountInput.value);
+
+            if (!week || !content || isNaN(amount) || amount <= 0) {
+                showAlert("Vui lòng điền đầy đủ thông tin hợp lệ (tuần, nội dung và số tiền).");
+                return;
+            }
+
+            try {
+                const publicTransactionsCollectionRef = collection(db, PUBLIC_COLLECTION_PATH);
+                await addDoc(publicTransactionsCollectionRef, {
+                    'Thời gian (Tuần)': week,
+                    'Nội dung': content,
+                    'Loại (Thu/Chi)': type,
+                    'Số tiền': amount,
+                    'timestamp': new Date().toISOString()
+                });
+
+                console.log(`Đã thêm khoản ${type} thành công!`);
+                transactionWeekInput.value = '';
+                transactionContentInput.value = '';
+                transactionAmountInput.value = '';
+
+            } catch (e) {
+                console.error("Lỗi khi thêm tài liệu:", e);
+                showAlert("Đã xảy ra lỗi khi thêm giao dịch. Vui lòng thử lại.");
+            }
+        }
+
+        async function deleteTransaction(docId) {
+            if (!isAdmin || !isAuthReady) {
+                console.error("Người dùng không có quyền xóa giao dịch.");
+                showAlert("Bạn đang ở chế độ xem công khai. Để xóa giao dịch, bạn cần đăng nhập với tài khoản quản trị.");
+                return;
+            }
+
+            // Show confirmation modal
+            const confirmationModal = document.getElementById('confirmationModal');
+            const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
+            const cancelDeleteBtn = document.getElementById('cancelDeleteBtn');
+            confirmationModal.style.display = 'flex';
+
+            confirmDeleteBtn.onclick = async () => {
+                try {
+                    const docRef = doc(db, PUBLIC_COLLECTION_PATH, docId);
+                    await deleteDoc(docRef);
+                    console.log("Giao dịch đã được xóa thành công!");
+                } catch (e) {
+                    console.error("Lỗi khi xóa tài liệu:", e);
+                } finally {
+                    confirmationModal.style.display = 'none';
+                }
+            };
+            cancelDeleteBtn.onclick = () => {
+                confirmationModal.style.display = 'none';
+            };
+        }
+        
+        // --- SETUP EVENT LISTENERS ---
+        function setupEventListeners() {
+            // Lấy các phần tử DOM và gán vào biến cục bộ
+            const totalIncomeEl = document.getElementById('totalIncome');
+            const totalExpenseEl = document.getElementById('totalExpense');
+            const balanceEl = document.getElementById('balance');
+            const transactionsTableBody = document.getElementById('transactionsTableBody');
+            const noDataMessage = document.getElementById('noDataMessage');
+            const connectionError = document.getElementById('connectionError');
+            const actionHeader = document.getElementById('actionHeader');
+            
+            const confirmationModal = document.getElementById('confirmationModal');
+            const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
+            const cancelDeleteBtn = document.getElementById('cancelDeleteBtn');
+            
+            const alertModal = document.getElementById('alertModal');
+            const alertMessage = document.getElementById('alertMessage');
+            const closeAlertBtn = document.getElementById('closeAlertBtn');
+            
+            const weekFilter = document.getElementById('weekFilter');
+            
+            const adminUI = document.getElementById('adminUI');
+            const publicUI = document.getElementById('publicUI');
+            const userIdDisplay = document.getElementById('userIdDisplay');
+            const exportBtn = document.getElementById('exportBtn');
+            const emailSignInBtn = document.getElementById('emailSignInBtn');
+
+            const transactionWeekInput = document.getElementById('transactionWeek');
+            const transactionContentInput = document.getElementById('transactionContent');
+            const transactionAmountInput = document.getElementById('transactionAmount');
+            const addIncomeBtn = document.getElementById('addIncomeBtn');
+            const addExpenseBtn = document.getElementById('addExpenseBtn');
+            
+            // Thêm sự kiện cho các nút và input
+            if (closeAlertBtn) closeAlertBtn.addEventListener('click', () => alertModal.style.display = 'none');
+            if (weekFilter) weekFilter.addEventListener('change', filterAndRenderTransactions);
+            if (addIncomeBtn) addIncomeBtn.addEventListener('click', () => addTransaction('Thu'));
+            if (addExpenseBtn) addExpenseBtn.addEventListener('click', () => addTransaction('Chi'));
+            if (exportBtn) exportBtn.addEventListener('click', exportToExcel);
+            if (emailSignInBtn) emailSignInBtn.addEventListener('click', signInWithEmail);
+
+            // Dùng event delegation cho nút xóa
+            if (transactionsTableBody) {
+                transactionsTableBody.addEventListener('click', (event) => {
+                    const deleteButton = event.target.closest('.delete-btn');
+                    if (deleteButton) {
+                        const docId = deleteButton.dataset.docId;
+                        deleteTransaction(docId);
+                    }
+                });
+            }
+            
+            // Gán các biến DOM cho phạm vi toàn cục để các hàm khác có thể truy cập
+            window.totalIncomeEl = totalIncomeEl;
+            window.totalExpenseEl = totalExpenseEl;
+            window.balanceEl = balanceEl;
+            window.transactionsTableBody = transactionsTableBody;
+            window.noDataMessage = noDataMessage;
+            window.connectionError = connectionError;
+            window.actionHeader = actionHeader;
+            window.confirmationModal = confirmationModal;
+            window.confirmDeleteBtn = confirmDeleteBtn;
+            window.cancelDeleteBtn = cancelDeleteBtn;
+            window.alertModal = alertModal;
+            window.alertMessage = alertMessage;
+            window.closeAlertBtn = closeAlertBtn;
+            window.weekFilter = weekFilter;
+            window.adminUI = adminUI;
+            window.publicUI = publicUI;
+            window.userIdDisplay = userIdDisplay;
+            window.exportBtn = exportBtn;
+            window.emailSignInBtn = emailSignInBtn;
+            window.transactionWeekInput = transactionWeekInput;
+            window.transactionContentInput = transactionContentInput;
+            window.transactionAmountInput = transactionAmountInput;
+        }
+
+        // --- EXPORT FUNCTION ---
+        function exportToExcel() {
+            const table = document.getElementById('transactionsTableBody');
+            let csv = "Tuần,Nội dung,Loại,Số tiền\n";
+            const rows = table.querySelectorAll('tr');
+            rows.forEach(row => {
+                const cols = row.querySelectorAll('td');
+                if (cols.length > 0) { // Ensure it's not the loading row
+                    const week = `"${cols[0].textContent}"`;
+                    const content = `"${cols[1].textContent.replace(/"/g, '""')}"`;
+                    const type = `"${cols[2].textContent}"`;
+                    const amount = `"${cols[3].textContent.replace(/[.₫]/g, '').trim()}"`;
+                    csv += `${week},${content},${type},${amount}\n`;
+                }
+            });
+            csv += "\n,Tổng Thu,Tổng Chi,Tồn Quỹ\n";
+            const totalIncome = window.totalIncomeEl.textContent.replace(/[.₫]/g, '').trim();
+            const totalExpense = window.totalExpenseEl.textContent.replace(/[.₫]/g, '').trim();
+            const balance = window.balanceEl.textContent.replace(/[.₫]/g, '').trim();
+            csv += `,${totalIncome},${totalExpense},${balance}\n`;
+            
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = 'bao_cao_thu_chi.csv';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        function filterAndRenderTransactions() {
+            const selectedWeek = window.weekFilter.value;
+            let filteredTransactions = allTransactionsData;
+
+            if (selectedWeek !== 'all') {
+                filteredTransactions = allTransactionsData.filter(tx => tx['Thời gian (Tuần)'] === selectedWeek);
+            }
+
+            renderTransactions(filteredTransactions);
+        }
+
+        function updateWeekFilterOptions() {
+            const weeks = [...new Set(allTransactionsData.map(tx => tx['Thời gian (Tuần)']))].sort();
+            
+            const selectedValue = window.weekFilter.value;
+            
+            window.weekFilter.innerHTML = `<option value="all">Tất cả</option>`;
+            weeks.forEach(week => {
+                const option = document.createElement('option');
+                option.value = week;
+                option.textContent = week;
+                window.weekFilter.appendChild(option);
+            });
+
+            if (weeks.includes(selectedValue)) {
+                window.weekFilter.value = selectedValue;
+            } else {
+                window.weekFilter.value = 'all';
+            }
+        }
+
+        function renderTransactions(transactions) {
+            window.transactionsTableBody.innerHTML = '';
+            if (transactions.length === 0) {
+                window.noDataMessage.classList.remove('hidden');
+                return;
+            }
+            window.noDataMessage.classList.add('hidden');
+            transactions.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+            transactions.forEach(tx => {
+                const row = document.createElement('tr');
+                const amountText = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(tx['Số tiền']);
+                row.className = `border-b border-gray-200 transition-all duration-300 hover:bg-gray-50 ${(tx['Loại (Thu/Chi)'] === 'Thu') ? 'text-green-600' : 'text-red-600'}`;
+                
+                let actionButtonHTML = '';
+                if (isAdmin) {
+                    actionButtonHTML = `
+                        <button class="delete-btn text-red-500 hover:text-red-700 transition-colors duration-200" data-doc-id="${tx.id}">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 pointer-events-none" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm6 0a1 1 0 012 0v6a1 1 0 11-2 0V8z" clip-rule="evenodd" />
+                            </svg>
+                        </button>
+                    `;
+                }
+
+                row.innerHTML = `
+                    <td class="py-3 px-6 text-left whitespace-nowrap">${tx['Thời gian (Tuần)']}</td>
+                    <td class="py-3 px-6 text-left">${tx['Nội dung']}</td>
+                    <td class="py-3 px-6 text-left">${tx['Loại (Thu/Chi)']}</td>
+                    <td class="py-3 px-6 text-right">${amountText}</td>
+                    <td class="py-3 px-6 text-left">${actionButtonHTML}</td>
+                `;
+                window.transactionsTableBody.appendChild(row);
+            });
+        }
+
+        function updateSummary(income, expense) {
+            if (window.totalIncomeEl) window.totalIncomeEl.textContent = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(income);
+            if (window.totalExpenseEl) window.totalExpenseEl.textContent = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(expense);
+            if (window.balanceEl) window.balanceEl.textContent = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(income - expense);
+        }
+
+        // Expose function to global scope for onclick attribute
+        window.deleteTransaction = deleteTransaction;
+
+        // --- INITIALIZATION ---
+        window.onload = () => {
+            setupEventListeners();
+            authenticateUser();
+        };
+    </script>
+</body>
+</html>
