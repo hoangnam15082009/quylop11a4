@@ -146,6 +146,27 @@
 
     <!-- Firebase SDKs -->
     <script type="module">
+        // Import the functions you need from the SDKs you need
+import { initializeApp } from "firebase/app";
+import { getAnalytics } from "firebase/analytics";
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
+
+// Your web app's Firebase configuration
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+const firebaseConfig = {
+  apiKey: "AIzaSyD8Q9-C_BSAdrkYGyxdv-hU2LXivCRcPFk",
+  authDomain: "quylop-9c37c.firebaseapp.com",
+  projectId: "quylop-9c37c",
+  storageBucket: "quylop-9c37c.firebasestorage.app",
+  messagingSenderId: "324849828083",
+  appId: "1:324849828083:web:2f7ee8e2ad71b4f12af786",
+  measurementId: "G-XR0H9B76P5"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const analytics = getAnalytics(app);
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, onSnapshot, addDoc, query, limit, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
